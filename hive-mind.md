@@ -1,3 +1,11 @@
+# Hive Mind — Knowledge Compiler Architecture
+
+Source-agnostic markdown knowledge layer: compile → lint → verify → serve.
+Standalone version, cost-optimized for solo dev on local hardware (MSI GF75 Thin, 16GB RAM) before moving to a cheap VM.
+
+## Full architecture
+
+```text
 ════════════════════════════════════════════════════════════════════════════
   STANDALONE ARCHITECTURE — full map (dev on GF75, cost-optimized)
 ════════════════════════════════════════════════════════════════════════════
@@ -84,9 +92,11 @@
 │           into wiki as new/updated pages (dashed ↑ to synthesis)           │
 │                                                                            │
 └──────────────────────────────────────────────────────────────────────────┘
+```
 
-  COST SUMMARY AT THIS STAGE
-  ────────────────────────────────────────────────────────────────
+## Cost summary at this stage
+
+```text
   hosting .......... $0 (GF75) → $6-12/mo (VM, once running 24/7)
   embeddings ........ $0 (Ollama, local, always)
   vector db ......... $0 (pgvector, same box)
@@ -96,3 +106,21 @@
   storage ........... $0-1/mo (Cloudflare R2)
   ────────────────────────────────────────────────────────────────
   TOTAL: near-$0 through dev, low single-digit $/mo once piloting
+```
+
+## Build order
+
+1. **Markdown/git connector** — no auth, no rate limits, prove the loop end to end.
+2. **Hash-diff + canonical document layer** — deterministic, no LLM, this is the #1 cost lever.
+3. **Local embeddings (Ollama) + pgvector** — dedup/clustering, always free.
+4. **Rule-based conflict checks** — timestamp/numeric/frontmatter diffing, catches most conflicts for free.
+5. **Model router** — Ollama for dev/simple classification, Claude Haiku (batch, hash-diffed only) for synthesis and residual conflict resolution.
+6. **Markdown wiki + search/serve layer** — flat files with provenance and staleness flags, SQLite FTS5 or Postgres full-text.
+7. **Notion connector** — second source, reuses everything downstream untouched.
+8. **Confluence connector** — last, since it's the messiest API surface (v1/v2 split, storage format).
+
+## Key design principle
+
+Everything above the canonical document layer is source-specific and swappable.
+Everything below it is source-agnostic and should never change when a new connector is added.
+The model router is the only thing that changes between dev and prod, or between solo-project and enterprise scale.
