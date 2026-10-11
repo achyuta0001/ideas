@@ -4,6 +4,10 @@ A unified project intelligence CLI. Scans dependencies, config, and logs — sur
 
 No cloud required. No LLM required. Optional LLM synthesis when you want it.
 
+> **Built.** This spec shipped as [tripwyre](https://github.com/achyuta0001/tripwyre) (Go, last push
+> 2026-07-11), which also runs as a GitHub Action. This note is the original spec; where the two
+> differ, the code is the truth.
+
 ---
 
 ## The Problem
