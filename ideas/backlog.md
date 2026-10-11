@@ -6,7 +6,7 @@ Ideas brainstormed but not yet written up. When one gets picked, give it its own
 ## Brainstorm 2026-10-11
 
 Two directions were picked: rebuilding systems to understand them, and tools for daily use.
-recall came out of the same session and gets its own note.
+[recall](recall.md) came out of the same session and has its own note.
 
 ### Rebuild-to-understand
 
