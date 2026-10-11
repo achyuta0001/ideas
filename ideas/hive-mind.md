@@ -1,16 +1,59 @@
 # Hive Mind — Knowledge Compiler Architecture
 
 Source-agnostic markdown knowledge layer: compile → lint → verify → serve.
-Standalone version, cost-optimized for solo dev on local hardware (MSI GF75 Thin, 16GB RAM) before moving to a cheap VM.
+Standalone version, cost-optimized for solo dev: build on the Mac, pilot on the always-on MSI GF75 Thin, then move to a cheap VM. See [premise corrections](#premise-corrections).
+
+## Verified facts (probed 2026-10-11, not assumed)
+
+```text
+  Mac        Apple M5, 16 GB unified, arm64, macOS 27.0.1
+             sqlite3 3.54.0 CLI and Python's sqlite3 (3.53.4), both with FTS5
+             Docker.app installed, so Postgres + pgvector can run as a
+             container with no host install
+
+  Not present on Mac: ollama, postgres (no psql / pg_config), pgvector
+
+  GF75       NOT PROBED. tailscaled was not running on the Mac, so peer state
+             is unknown. Last seen by pocket-agent (2026-08-22): achyutasmsi,
+             Windows, offline for 3 days. GPU SKU and RAM unverified; the
+             "16GB RAM" in the first draft is unconfirmed.
+```
+
+## Premise corrections
+
+**1. Develop on the Mac. The GF75 is the always-on pilot host, not the inference box.**
+The first draft ran everything on the GF75, including the 7-8B Ollama models.
+[pocket-agent](pocket-agent.md) later worked out that the GF75's GPU has 4 or 6 GB of VRAM
+depending on SKU, and the SKU is still unknown. `llama3.1:8b` and `qwen2.5:7b` at Q4 are about
+5 GB before any context, so they spill into system RAM on a 4 GB card and are tight on 6 GB.
+The M5 has roughly 10 GB usable for weights and runs them comfortably. Embedding models are
+under 300 MB and fit anywhere.
+
+```text
+  dev     Mac M5. Runs the whole stack, 7-8B models included.
+
+  pilot   GF75 over Tailscale. Connectors, Postgres + pgvector, embeddings,
+          search/serve. None need much GPU; all of them benefit from
+          staying on while the laptop is closed. For y/n classification
+          run a 3-4B model there, or route it to Haiku.
+
+  prod    $6-12/mo VM. No GPU, 1-4 GB RAM. Embeddings on CPU, all LLM
+          work on Haiku. Only the model router changes.
+```
+
+**2. "Rule checks catch ~80% of conflicts" is a guess, not a measurement.**
+Nothing has run yet. Once step 4 works, hand-label a sample of real conflicts and measure the
+catch rate before sizing step 5. The "pennies-few $/mo" Haiku line in the cost summary depends
+on that number and on how much content changes per day.
 
 ## Full architecture
 
 ```text
 ════════════════════════════════════════════════════════════════════════════
-  STANDALONE ARCHITECTURE — full map (dev on GF75, cost-optimized)
+  STANDALONE ARCHITECTURE — full map (Mac dev, GF75 pilot, cost-optimized)
 ════════════════════════════════════════════════════════════════════════════
 
- LOCAL DEV/PILOT MACHINE (MSI GF75 Thin, 16GB RAM)  ──or──  $6-12/mo VM later
+ DEV: Mac M5  ·  PILOT: MSI GF75 Thin (always-on)  ──or──  $6-12/mo VM later
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                                                                            │
 │  ┌────────────────────── SOURCE ADAPTERS (pluggable) ──────────────────┐ │
@@ -41,7 +84,7 @@ Standalone version, cost-optimized for solo dev on local hardware (MSI GF75 Thin
 │  ┌─────────────────┐                              ┌──────────────────┐   │
 │  │ LOCAL EMBEDDINGS │  ← Ollama, always local        │ RULE-BASED       │   │
 │  │ (nomic-embed /   │     $0 marginal cost,          │ CHECKS           │   │
-│  │  bge-small)      │     runs fine on GF75 GPU      │ - timestamp diff │   │
+│  │  bge-small)      │     fits Mac, GF75 or CPU      │ - timestamp diff │   │
 │  └────────┬─────────┘                                │ - numeric diff   │   │
 │           ▼                                           │ - frontmatter    │   │
 │  ┌─────────────────┐                                 │   mismatch       │   │
@@ -57,7 +100,7 @@ Standalone version, cost-optimized for solo dev on local hardware (MSI GF75 Thin
 │                  └──────────┬──────────┬───────┘                          │
 │                             ▼           ▼                                  │
 │              ┌───────────────────┐  ┌────────────────────────────┐        │
-│              │ OLLAMA (local)     │  │ CLAUDE API — Haiku, batch   │        │
+│              │ OLLAMA (Mac, dev)  │  │ CLAUDE API — Haiku, batch   │        │
 │              │ llama3.1:8b /      │  │ ONLY for:                   │        │
 │              │ qwen2.5:7b         │  │  • multi-doc synthesis       │        │
 │              │                    │  │  • residual conflict calls  │        │
@@ -124,3 +167,30 @@ Standalone version, cost-optimized for solo dev on local hardware (MSI GF75 Thin
 Everything above the canonical document layer is source-specific and swappable.
 Everything below it is source-agnostic and should never change when a new connector is added.
 The model router is the only thing that changes between dev and prod, or between solo-project and enterprise scale.
+
+## Open questions
+
+- **Search engine.** SQLite FTS5 or Postgres full-text? Postgres is already on the box for
+  pgvector, so one engine means one thing to back up. FTS5 is zero-ops and already works on
+  the Mac. Decide before step 6.
+- **Wiki storage.** git or R2? git gives history, diffs and provenance for free. R2 only earns
+  its place if the serve layer runs somewhere without a checkout.
+- **Permissions across sources.** One synthesized page can merge an open Notion page with a
+  restricted Confluence one. Who may read the result? The intersection of source ACLs is the
+  safe default but hides a lot. And whose identity does a querying agent carry: yours, or a
+  service account's?
+- **Feedback-loop trust.** Answered queries get filed back as wiki pages. What stops a wrong
+  answer from becoming a source? At minimum a provenance tag and a lower trust tier; maybe a
+  review step.
+- **Serve interface.** Plain files plus llms.txt that Claude Code reads directly, or an MCP
+  server? Files are simpler, but an agent reading files sees everything, so permission
+  filtering can only be enforced behind something like MCP.
+- **Webhook reachability.** Notion's servers have to reach the webhook endpoint, and the GF75
+  is only on the tailnet. Tailscale Funnel, a small relay, or poll instead?
+- **VM sizing.** Does a $6-12/mo VM hold Postgres + pgvector + CPU embeddings for the corpus
+  you expect? Measure on the pilot before paying for it.
+
+## Related
+
+- [pocket-agent](pocket-agent.md) — the same compile/serve idea at personal scale: `pocket ask`
+  (its build step 7) searches a drive-resident vault instead of a team wiki.
