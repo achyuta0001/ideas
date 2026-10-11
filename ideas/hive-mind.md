@@ -3,6 +3,13 @@
 Source-agnostic markdown knowledge layer: compile → lint → verify → serve.
 Standalone version, cost-optimized for solo dev: build on the Mac, pilot on the always-on MSI GF75 Thin, then move to a cheap VM. See [premise corrections](#premise-corrections).
 
+> **Built.** This design shipped as [hive](https://github.com/achyuta0001/hive) (Python, last commit
+> 2026-07-18). This note is the original design; where the two differ, the code is the truth.
+> Main differences: all state lives in stdlib SQLite (no Postgres or pgvector); Claude Code
+> reads the wiki over MCP and Copilot as plain markdown; permissions are captured at ingest but
+> not enforced yet; rule checks are hints the LLM must confirm or dismiss, never auto-resolved;
+> Confluence is tested offline only.
+
 ## Verified facts (probed 2026-10-11, not assumed)
 
 ```text
@@ -42,9 +49,11 @@ under 300 MB and fit anywhere.
 ```
 
 **2. "Rule checks catch ~80% of conflicts" is a guess, not a measurement.**
-Nothing has run yet. Once step 4 works, hand-label a sample of real conflicts and measure the
-catch rate before sizing step 5. The "pennies-few $/mo" Haiku line in the cost summary depends
-on that number and on how much content changes per day.
+This note never measured it. hive sidesteps the question: it feeds rule checks to the LLM as
+hints instead of letting rules settle conflicts alone. The number only matters if you want rules
+to skip LLM calls; then hand-label a sample of real conflicts and measure the catch rate first.
+The "pennies-few $/mo" Haiku line in the cost summary depends on it and on how much content
+changes per day.
 
 ## Full architecture
 
@@ -172,19 +181,20 @@ The model router is the only thing that changes between dev and prod, or between
 
 - **Search engine.** SQLite FTS5 or Postgres full-text? Postgres is already on the box for
   pgvector, so one engine means one thing to back up. FTS5 is zero-ops and already works on
-  the Mac. Decide before step 6.
+  the Mac. Decide before step 6. *hive: stdlib SQLite for all state; Postgres never arrived.*
 - **Wiki storage.** git or R2? git gives history, diffs and provenance for free. R2 only earns
   its place if the serve layer runs somewhere without a checkout.
 - **Permissions across sources.** One synthesized page can merge an open Notion page with a
   restricted Confluence one. Who may read the result? The intersection of source ACLs is the
   safe default but hides a lot. And whose identity does a querying agent carry: yours, or a
-  service account's?
+  service account's? *hive: captured per page at ingest, enforced nowhere yet (one reader).*
 - **Feedback-loop trust.** Answered queries get filed back as wiki pages. What stops a wrong
   answer from becoming a source? At minimum a provenance tag and a lower trust tier; maybe a
   review step.
 - **Serve interface.** Plain files plus llms.txt that Claude Code reads directly, or an MCP
   server? Files are simpler, but an agent reading files sees everything, so permission
-  filtering can only be enforced behind something like MCP.
+  filtering can only be enforced behind something like MCP. *hive: both. MCP tools for Claude
+  Code, plain markdown for Copilot.*
 - **Webhook reachability.** Notion's servers have to reach the webhook endpoint, and the GF75
   is only on the tailnet. Tailscale Funnel, a small relay, or poll instead?
 - **VM sizing.** Does a $6-12/mo VM hold Postgres + pgvector + CPU embeddings for the corpus
