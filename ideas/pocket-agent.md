@@ -261,9 +261,15 @@ and the design has to assume that is normal.
 ## Open questions
 
 - Which GF75 SKU (GTX 1650 4 GB / 1660 Ti 6 GB / RTX 3060 6 GB)? Only matters if the
-  no-GPU-offload conclusion gets challenged.
+  no-GPU-offload conclusion gets challenged. It also decides which local model
+  [hive-mind](hive-mind.md) can run on the GF75 as its pilot host.
 - Drive was unplugged at probe time — real sequential throughput and current filesystem
   still unverified. Reformatting to APFS destroys existing contents.
 - Does the Windows box need to reach *back* into the Mac, or is the relationship one-way?
 - Is `pocket` meant to be usable on someone else's Mac, or only yours? Only yours means the
   launch shim and Gatekeeper story get simpler still.
+
+## Related
+
+- [hive-mind](hive-mind.md) — the same compile/serve idea at team scale, across git, Notion and
+  Confluence. `pocket ask` (build step 7) is its personal-scale cousin.

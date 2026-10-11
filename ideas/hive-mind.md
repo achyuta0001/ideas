@@ -124,3 +124,8 @@ Standalone version, cost-optimized for solo dev on local hardware (MSI GF75 Thin
 Everything above the canonical document layer is source-specific and swappable.
 Everything below it is source-agnostic and should never change when a new connector is added.
 The model router is the only thing that changes between dev and prod, or between solo-project and enterprise scale.
+
+## Related
+
+- [pocket-agent](pocket-agent.md) — the same compile/serve idea at personal scale: `pocket ask`
+  (its build step 7) searches a drive-resident vault instead of a team wiki.
