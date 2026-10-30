@@ -204,3 +204,9 @@ The model router is the only thing that changes between dev and prod, or between
 
 - [pocket-agent](pocket-agent.md) — the same compile/serve idea at personal scale: `pocket ask`
   (its build step 7) searches a drive-resident vault instead of a team wiki.
+- [estate context handoff](hive-mind/estate-context-handoff.md) — exploration, 2026-10-31. Takes this
+  design to a 35-service polyrepo estate with no tracing: typed `Contract`/`Edge` records with evidence
+  and confidence replace the canonical document, extracted from K8s env vars, Module Federation remotes
+  and Kafka consumer groups. Carries measured injection costs and a verified delivery rail for Claude
+  Code, and answers two of the open questions above — serve interface (plugin, not raw files) and
+  permissions (splitting is for relevance; authorization needs a server).
