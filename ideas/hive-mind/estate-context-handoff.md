@@ -461,7 +461,7 @@ Deprecation sweep; incident reverse-traversal; prior art and conflict detection 
 4. **Legacy repos (5–7) with no manifests.** No extraction path exists for them today. Candidates: hand-written override cards only; access-log-derived `observed` edges; or explicit exclusion with that exclusion surfaced in every coverage line.
 5. **How the `SessionStart` hook derives "services in scope."** Git remote → service is easy; changed-paths → services in a polyrepo is not obviously well-defined. Unresolved.
 6. **Whether micro-frontends and services share one `Service` table** or need separate kinds with different contract shapes. Currently modelled as one table with a `kind` discriminator; untested.
-7. **Monetisation / packaging.** S22 concludes the week-1 artifact is an internal tool, not a product. There is no decision on whether this ships as a product at all, as an internal platform capability, or as open source with the identity-resolution work as the paid layer.
+7. **Monetisation / packaging.** S22 concludes the week-1 artifact is an internal tool, not a product. There is no decision on whether this ships as a product at all, as an internal platform capability, or as open source with the identity-resolution work as the paid layer. §10 works the question through to a recommended first motion (migration campaigns) and a wedge (micro-frontend sprawl), but that whole section is unvalidated reasoning, so this stays open.
 
 **UNCONFIRMED capability claims — do not rely on these without checking:**
 
@@ -493,6 +493,97 @@ Two independent researchers on different models surveyed the same questions on 2
 
 ---
 
-## 10. The one-line version
+## 10. Commercial position
+
+**Status: reasoning, not research.** Nothing here is validated — no customer interview, no design
+partner, no pricing test, no market sizing. §9 records that both researchers independently concluded
+the moat is thin; this section is the attempt to find where it is not. Every claim is a hypothesis,
+and §10.7 names how to kill each one.
+
+### 10.1 Why the system in §7 cannot be sold
+
+Developer tooling is priced against **free**, and free is the honest comparison: §4.1 measures the
+injection layer at ~550 tokens always-on, and S17 delivers it in six committed lines of
+`.claude/settings.json`. Both researchers put a competent platform team's build time at a sprint or
+less, and Anthropic commoditised the distribution rails on 2026-06-29 (§4.7). There is no price for
+markdown compilation.
+
+Compliance and reliability tooling is priced against **the cost of the audit finding or the
+incident**. Same software, different buyer, two orders of magnitude of price. So the commercial
+question is not "which feature do we add" but **"which existing budget line does this attach to"**.
+
+### 10.2 Candidate features, ranked by whether a budget already exists
+
+| Feature | Buyer / budget | Why defensible | Cheap test |
+|---|---|---|---|
+| **Compliance artifact generation** — dated, provenance-stamped dependency and data-flow graph, regenerated continuously instead of hand-built annually | Risk / internal audit | DORA (in force for EU financial entities) and SOC 2 both want this. Compliance does not care that a platform team *could* build it; it cares that the artifact is continuous and acceptable to an auditor. Least price-sensitive line | Ask one internal auditor whether a generated graph would replace a manual annual exercise |
+| **Migration / deprecation campaigns** — burndown to zero consumers of a contract, with a tracked end date | Platform program budget | "Who still consumes `v2`" blocks every migration, and firms already pay consultants to answer it by hand. Clear start, clear finish, trivially procurable | Find one in-flight migration; ask what answering that question costs today |
+| **Architecture governance gate** — block a PR that introduces an edge violating a rule (no MFE calling another MFE's backend; no service reading another's database) | Chief architect / platform | Enterprises want this and cannot do it today because nobody holds the edge graph. Requires the asset in S22; cannot be faked | Ask whether *any* architectural rule is currently enforced in CI |
+| **Change-failure prevention** — the §7 PR gate, measured against DORA change failure rate | Reliability / SRE | Attaches to a metric executives already track. Needs ~a quarter of attribution data before the ROI is arguable | Count cross-service incidents in the last two quarters whose cause was a contract change |
+| **Agent correctness eval, per estate** | The AI budget | Every enterprise rolling out coding agents in 2026 must show whether it works, and no one has a per-estate number. §6.1 is already the harness | Ask who currently owns the number that proves the AI rollout works |
+| **Cross-estate benchmarking** — "your fan-out is 90th percentile; coupling worsened 12% this quarter" | CTO | Compounds with every customer and is structurally unavailable to an internal team. The real long-term moat | None until N > 5 customers. **Not a starting feature** |
+
+### 10.3 The wedge: micro-frontend sprawl
+
+Of everything above, this is the one to lead with, because it is narrow, painful, unserved, and the
+extraction for it is exact rather than heuristic.
+
+Thirty-plus Module Federation micro-frontends means **shared-dependency version skew**. Two MFEs
+ship incompatible versions of a shared library, the host shell breaks at runtime, and nothing in CI
+catches it because each repository compiled in isolation. Add bundle-size regressions that no single
+team owns and a shell whose load time degrades every sprint.
+
+Two facts make this the wedge rather than a feature:
+
+- **It is revenue-adjacent.** In retail or fintech a broken or slow shell is lost conversion, which
+  is a fundable category rather than a developer convenience.
+- **Nothing serves it.** The 2026-10-30 survey (§4.7) found no tool that aggregates Module
+  Federation `remotes` across repositories; the MF ecosystem tools are per-app or runtime-only. And
+  per S1, `remotes` are **declared exactly** — no inference, no heuristics, no tracing. This is the
+  only place in the estate where extraction is both exact and uncontested.
+
+### 10.4 What not to build
+
+| | Why |
+|---|---|
+| The injection layer | ~550 tokens, six lines of settings, free as of Claude Code v2.1.306 (§4.1) |
+| A Confluence connector | S20. Atlassian ships the good one; connectors are commodity |
+| A bare `ttl:` field marketed as drift detection | One sprint of work and instantly copied. Per §9, drift is defensible *only* because it needs the graph to contradict the prose |
+| A dashboard | Nobody buys a second place to look at their services. Answers belong in the PR, the session and the ticket |
+
+### 10.5 Pricing shape
+
+Deployment is in-network (§1), so: **per-estate or per-service annual contract, not per seat.** Seat
+pricing invites comparison with Copilot and Cursor at roughly $20/developer/month — a comparison
+this product cannot win and is not competing in. Compliance and migration line items are not
+benchmarked against developer-tool seat prices.
+
+### 10.6 Sequencing, and the dependency that gates all of it
+
+This section does **not** change the build order in §7. S22 stands: the graph is the product and is
+staffed from week 1. What changes is the buyer, and therefore which feature follows the graph.
+
+**First commercial motion: migration campaigns.** That buyer has the shortest sales cycle; the
+question they are paying for — "who still consumes this contract" — is precisely the query that
+forces extraction correctness; and delivering one migration puts you inside the estate for
+everything else in §10.2.
+
+**The gate:** every feature here is downstream of the graph being correct on one real heterogeneous
+estate — the alias problem (§8, open question 2) and the manifest-less legacy repositories (§8, open
+question 4). Sell nothing before §6.1 passes with **zero −1 scores**. A confidently wrong dependency
+claim sold as a compliance artifact is a materially worse outcome than having no product.
+
+### 10.7 How to falsify this section
+
+| If | Then |
+|---|---|
+| §6.2 shows median exploration tokens falling by **< 5,000** | The token pitch is dead — already pre-registered. Everything here then rests on accuracy and governance alone |
+| An internal auditor says a generated dependency graph is **not acceptable evidence** | §10.2 row 1 dies, and with it the highest-margin line |
+| The target firm has **no in-flight migration** | §10.2 row 2 has no entry point and the sequencing in §10.6 is wrong |
+| Kubedian, Repowise or Qodo ship **Module Federation remote aggregation** | §10.3 closes. Re-run the §4.7 survey quarterly; this is the single most perishable claim in the document |
+
+---
+
+## 11. The one-line version
 
 Extract typed `Contract` and `Edge` records with evidence and confidence from K8s env vars and Module Federation remotes, render them as a PR-reviewed markdown card repo, compile that into an `AGENTS.md` plus a single-skill Claude Code plugin delivered by six lines of committed `.claude/settings.json`, keep nothing in the request path, report coverage honestly, and treat the identity-resolution tail — not the injection mechanism — as the product.
