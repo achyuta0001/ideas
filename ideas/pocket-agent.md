@@ -19,14 +19,17 @@ but useful. Nothing depends on the host Mac having anything installed.
              Filesystem, real throughput and free space unverified.
 
   Not present: rustc, ollama, llama-server, Tailscale.app
+
+  GF75       NVIDIA GeForce GTX 1650, 4 GB VRAM · 7.8 GB RAM
+             (probed 2026-11-09 on the PC: nvidia-smi, Win32_ComputerSystem)
 ```
 
 ## Premise corrections
 
 **1. The Windows PC is not a useful inference accelerator.**
 Token generation is memory-bandwidth bound. M5 runs ~153 GB/s with roughly 10 GB usable for
-weights after macOS overhead. A GF75 Thin carries a GTX 1650 (4 GB) / 1660 Ti (6 GB) /
-RTX 3060 (6 GB) at 128-336 GB/s. It only wins for models that fit under 6 GB, and loses
+weights after macOS overhead. This GF75 Thin has the smallest SKU: a GTX 1650 with 4 GB of
+VRAM (probed 2026-11-09). It can only compete for models that fit under 4 GB, and loses
 outright above that because it spills to system RAM over PCIe. The M5 also has per-core
 neural accelerators that help prompt processing.
 
@@ -260,9 +263,6 @@ and the design has to assume that is normal.
 
 ## Open questions
 
-- Which GF75 SKU (GTX 1650 4 GB / 1660 Ti 6 GB / RTX 3060 6 GB)? Only matters if the
-  no-GPU-offload conclusion gets challenged. It also decides which local model
-  [hive-mind](hive-mind.md) can run on the GF75 as its pilot host.
 - Drive was unplugged at probe time — real sequential throughput and current filesystem
   still unverified. Reformatting to APFS destroys existing contents.
 - Does the Windows box need to reach *back* into the Mac, or is the relationship one-way?

@@ -20,19 +20,19 @@ Standalone version, cost-optimized for solo dev: build on the Mac, pilot on the 
 
   Not present on Mac: ollama, postgres (no psql / pg_config), pgvector
 
-  GF75       NOT PROBED. tailscaled was not running on the Mac, so peer state
-             is unknown. Last seen by pocket-agent (2026-08-22): achyutasmsi,
-             Windows, offline for 3 days. GPU SKU and RAM unverified; the
-             "16GB RAM" in the first draft is unconfirmed.
+  GF75       NVIDIA GeForce GTX 1650, 4 GB VRAM · 7.8 GB RAM (probed
+             2026-11-09 on the PC). The "16GB RAM" in the first draft was
+             wrong. Tailnet state not re-checked: last seen by pocket-agent
+             (2026-08-22) as achyutasmsi, Windows, offline for 3 days.
 ```
 
 ## Premise corrections
 
 **1. Develop on the Mac. The GF75 is the always-on pilot host, not the inference box.**
 The first draft ran everything on the GF75, including the 7-8B Ollama models.
-[pocket-agent](pocket-agent.md) later worked out that the GF75's GPU has 4 or 6 GB of VRAM
-depending on SKU, and the SKU is still unknown. `llama3.1:8b` and `qwen2.5:7b` at Q4 are about
-5 GB before any context, so they spill into system RAM on a 4 GB card and are tight on 6 GB.
+The GF75's GPU turned out to be a GTX 1650 with 4 GB of VRAM (probed 2026-11-09). `llama3.1:8b`
+and `qwen2.5:7b` at Q4 are about 5 GB before any context, so they spill into its 8 GB of system
+RAM.
 The M5 has roughly 10 GB usable for weights and runs them comfortably. Embedding models are
 under 300 MB and fit anywhere.
 
